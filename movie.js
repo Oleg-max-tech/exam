@@ -1,31 +1,72 @@
-const apiURL = "https://api.themoviedb.org/3";
-const imageUrl = "https://image.tmdb.org/t/p/w500";
-const apiToken =
-  "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI5NDk5YTk2YTMzMDZjYWU3N2E3YjBmYWExZjU5MGNiYiIsIm5iZiI6MTcyNzc3MzQzNy40MDI1OTgsInN1YiI6IjY2ZmE2NGIwY2M0M2NlYmQwM2YxODI2MiIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.5mze49X_uKZT9eIgoFJo66LhpytEtpgN3KQkqmOF0HM";
+import { apiURL, apiToken } from "./config.js";
+import { imageUrl } from "./contants.js";
+import { debounce } from "./utils.js";
 
-const searchInput = document.getElementById("search-input");
-const listMovie = document.getElementById("list-movies");
-const titleMovies = document.getElementById("title-movie");
-const detailsMovie = document.getElementById("details-movies");
-const imageMovie = document.getElementById("image-movie");
-const descriptionMovie = document.getElementById("description-movie");
-const recommendationList = document.getElementById("recommendation-list");
-const backBtn = document.getElementById("back-btn");
-const moviesBtn = document.getElementById("movies-btn");
-const serialsBtn = document.getElementById("serials-btn");
-const mainPage = document.getElementById("main-page");
+const app = document.querySelector(".app");
 
+// основна структура
+
+const searchInput = document.createElement("input");
+searchInput.setAttribute("id", "search-input");
+searchInput.setAttribute("placeholder", "Search Movies or TV Shows");
+app.appendChild(searchInput);
+
+const moviesBtn = document.createElement("button");
+moviesBtn.setAttribute("id", "movies-btn");
+moviesBtn.textContent = "Movies";
+app.appendChild(moviesBtn);
+
+const serialsBtn = document.createElement("button");
+serialsBtn.setAttribute("id", "serials-btn");
+serialsBtn.textContent = "Serials ";
+app.appendChild(serialsBtn);
+
+const listMovie = document.createElement("div");
+listMovie.setAttribute("id", "list-movies");
+app.appendChild(listMovie);
+
+const detailsMovie = document.createElement("div");
+detailsMovie.setAttribute("id", "details-movies");
+detailsMovie.classList.add("hidden");
+app.appendChild(detailsMovie);
+
+const backBtn = document.createElement("button");
+backBtn.setAttribute("id", "back-btn");
+backBtn.textContent = "Back";
+detailsMovie.appendChild(backBtn);
+
+const titleMovies = document.createElement("h2");
+titleMovies.setAttribute("id", "title-movie");
+detailsMovie.appendChild(titleMovies);
+
+const imageMovie = document.createElement("img");
+imageMovie.setAttribute("id", "image-movie");
+detailsMovie.appendChild(imageMovie);
+
+const descriptionMovie = document.createElement("p");
+descriptionMovie.setAttribute("id", "description-movie");
+detailsMovie.appendChild(descriptionMovie);
+
+const starsContainer = document.createElement("div");
+starsContainer.setAttribute("id", "stars-container");
+detailsMovie.appendChild(starsContainer);
+
+const recommendationList = document.createElement("ul");
+recommendationList.setAttribute("id", "recommendation-list");
+detailsMovie.appendChild(recommendationList);
+
+// Завантаження популярних фільмів або серіалів
 loadPopularMovies("movie");
 
-mainPage.addEventListener("click", () => loadPopularMovies("movie"));
 moviesBtn.addEventListener("click", () => loadPopularMovies("movie"));
 serialsBtn.addEventListener("click", () => loadPopularMovies("tv"));
 
-searchInput.addEventListener("input", searchMovies);
+searchInput.addEventListener("input", debounce(searchMovies, 2000));
 
 backBtn.addEventListener("click", () => {
   detailsMovie.classList.add("hidden");
   listMovie.style.display = "flex";
+  window.history.back();
 });
 
 // Завантаження популярних фільмів або серіалів
@@ -45,7 +86,8 @@ async function loadPopularMovies(type) {
     console.error("Error:", response.statusText);
   }
 }
-//пошук фільмів/серіалів
+
+//Пошукова система
 async function searchMovies() {
   const query = searchInput.value;
   if (!query.trim()) {
@@ -53,26 +95,18 @@ async function searchMovies() {
     return;
   }
 
-  const url = `${apiURL}/search/movie`;
-  const options = {
-    method: "GET",
+  const url = `${apiURL}/search/movie?query=${encodeURIComponent(query)}`;
+  const response = await fetch(url, {
     headers: {
       Authorization: `Bearer ${apiToken}`,
     },
-  };
+  });
 
-  try {
-    const response = await fetch(
-      `${url}?query=${encodeURIComponent(query)}`,
-      options
-    );
-    if (!response.ok) {
-      throw new Error(`Error: ${response.status}`);
-    }
+  if (response.ok) {
     const data = await response.json();
     displayMovies(data.results, "movie");
-  } catch (error) {
-    console.error("Error searching movies:", error);
+  } else {
+    console.error("Error:", response.statusText);
   }
 }
 
@@ -80,24 +114,30 @@ async function searchMovies() {
 function displayMovies(movies, type) {
   listMovie.innerHTML = "";
   if (!movies || !movies.length) {
-    listMovie.innerHTML = "<p>No results found.</p>";
+    const noResultMsg = document.createElement("p");
+    noResultMsg.textContent = "No results found.";
+    listMovie.appendChild(noResultMsg);
     return;
   }
 
   movies.forEach((movie) => {
     const cardMovie = document.createElement("div");
-    cardMovie.innerHTML = `
-      <img src="${imageUrl}${movie.poster_path}" alt="${
-      movie.title || movie.name
-    }">
-      <h3>${movie.title || movie.name}</h3>
-    `;
+
+    const img = document.createElement("img");
+    img.src = `${imageUrl}${movie.poster_path}`;
+    img.alt = movie.title || movie.name;
+    cardMovie.appendChild(img);
+
+    const title = document.createElement("h3");
+    title.textContent = movie.title || movie.name;
+    cardMovie.appendChild(title);
+
     cardMovie.addEventListener("click", () => loadMovieDetails(movie.id, type));
     listMovie.appendChild(cardMovie);
   });
 }
 
-// Завантаження деталей фільму або серіалу за ID
+// Завантаження деталей фільму або серіалу
 async function loadMovieDetails(movieId, type) {
   const url = `${apiURL}/${type}/${movieId}`;
   const options = {
@@ -113,19 +153,44 @@ async function loadMovieDetails(movieId, type) {
       throw new Error(`Error: ${response.status}`);
     }
     const movie = await response.json();
-    displayMovieDetails(movie, type);
+    displayMovieDetails(movie);
   } catch (error) {
     console.error("Error loading movie details:", error);
   }
 }
 
-// Завантаження рекомендацій
-async function fetchRecommendations(movieId) {
-  if (!movieId) {
-    console.error("Movie ID is undefined");
-    return;
-  }
+// Відображення деталей фільму або серіалу
+function displayMovieDetails(movie) {
+  titleMovies.textContent = movie.title || movie.name;
+  imageMovie.src = `${imageUrl}${movie.poster_path}`;
+  descriptionMovie.textContent = movie.overview;
 
+  const rating = Math.ceil(movie.vote_average / 2);
+  displayStars(rating);
+
+  fetchRecommendations(movie.id);
+
+  detailsMovie.classList.remove("hidden");
+  listMovie.style.display = "none";
+}
+
+// Відображення зірочок рейтингу
+function displayStars(rating) {
+  starsContainer.innerHTML = "";
+  for (let i = 1; i <= 5; i++) {
+    const star = document.createElement("span");
+    star.classList.add("star");
+    if (i <= rating) {
+      star.textContent = "★";
+    } else {
+      star.textContent = "☆";
+    }
+    starsContainer.appendChild(star);
+  }
+}
+
+//рекомендації
+async function fetchRecommendations(movieId) {
   const url = `${apiURL}/movie/${movieId}/recommendations`;
   const options = {
     method: "GET",
@@ -145,23 +210,11 @@ async function fetchRecommendations(movieId) {
       const listItem = document.createElement("li");
       listItem.textContent = recommendation.title;
       listItem.addEventListener("click", () =>
-        loadMovieDetails(recommendation.id, recommendation.media_type)
+        loadMovieDetails(recommendation.id)
       );
       recommendationList.appendChild(listItem);
     });
   } catch (error) {
     console.error("Error fetching recommendations:", error);
   }
-}
-
-// Відображення деталей фільму або серіалу
-function displayMovieDetails(movie, type) {
-  titleMovies.textContent = movie.title || movie.name;
-  imageMovie.src = `${imageUrl}${movie.poster_path}`;
-  descriptionMovie.textContent = movie.overview;
-
-  fetchRecommendations(movie.id, type);
-
-  detailsMovie.classList.remove("hidden");
-  listMovie.style.display = "none";
 }
