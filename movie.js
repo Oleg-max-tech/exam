@@ -4,7 +4,12 @@ import { debounce } from "./utils.js";
 
 const app = document.querySelector(".app");
 
-// основна структура
+// Основна структура
+const header = document.createElement("h1");
+header.setAttribute("id", "main-title");
+header.textContent = "Movie Project";
+header.style.cursor = "poiner";
+app.appendChild(header);
 
 const searchInput = document.createElement("input");
 searchInput.setAttribute("id", "search-input");
@@ -18,7 +23,7 @@ app.appendChild(moviesBtn);
 
 const serialsBtn = document.createElement("button");
 serialsBtn.setAttribute("id", "serials-btn");
-serialsBtn.textContent = "Serials ";
+serialsBtn.textContent = "Serials";
 app.appendChild(serialsBtn);
 
 const listMovie = document.createElement("div");
@@ -69,6 +74,11 @@ backBtn.addEventListener("click", () => {
   window.history.back();
 });
 
+header.addEventListener("click", () => {
+  detailsMovie.classList.add("hidden");
+  listMovie.style.display = "grid";
+});
+
 // Завантаження популярних фільмів або серіалів
 async function loadPopularMovies(type) {
   const url = `${apiURL}/${type}/popular`;
@@ -87,7 +97,7 @@ async function loadPopularMovies(type) {
   }
 }
 
-//Пошукова система
+// Пошукова система
 async function searchMovies() {
   const query = searchInput.value;
   if (!query.trim()) {
@@ -132,6 +142,7 @@ function displayMovies(movies, type) {
     title.textContent = movie.title || movie.name;
     cardMovie.appendChild(title);
 
+    // Передаємо type, щоб знати чи це movie, чи tv
     cardMovie.addEventListener("click", () => loadMovieDetails(movie.id, type));
     listMovie.appendChild(cardMovie);
   });
@@ -140,6 +151,7 @@ function displayMovies(movies, type) {
 // Завантаження деталей фільму або серіалу
 async function loadMovieDetails(movieId, type) {
   const url = `${apiURL}/${type}/${movieId}`;
+
   const options = {
     method: "GET",
     headers: {
@@ -189,7 +201,7 @@ function displayStars(rating) {
   }
 }
 
-//рекомендації
+// Рекомендації
 async function fetchRecommendations(movieId) {
   const url = `${apiURL}/movie/${movieId}/recommendations`;
   const options = {
@@ -209,9 +221,12 @@ async function fetchRecommendations(movieId) {
     data.results.forEach((recommendation) => {
       const listItem = document.createElement("li");
       listItem.textContent = recommendation.title;
+
+      // Додавання обробника події
       listItem.addEventListener("click", () =>
-        loadMovieDetails(recommendation.id)
+        loadMovieDetails(recommendation.id, "movie")
       );
+
       recommendationList.appendChild(listItem);
     });
   } catch (error) {
