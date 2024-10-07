@@ -222,7 +222,7 @@ async function fetchRecommendations(movieId) {
       const listItem = document.createElement("li");
       listItem.textContent = recommendation.title;
 
-      // Додавання обробника події
+    
       listItem.addEventListener("click", () =>
         loadMovieDetails(recommendation.id, "movie")
       );
